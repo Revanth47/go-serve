@@ -8,12 +8,46 @@ import (
 	"path"
 	"strings"
 	"strconv"
+	"time"
 )
 
 type ServeConfig struct {
 	Port string
 	Dir  string
 	Path string
+}
+
+
+type statusWriter struct {
+	http.ResponseWriter
+	status int
+	length int
+}
+
+func (w *statusWriter) WriteHeader(status int) {
+	w.status = status
+	w.ResponseWriter.WriteHeader(status)
+}
+
+func (w *statusWriter) Write(b []byte) (int, error) {
+	if w.status == 0 {
+		w.status = 200
+	}
+	w.length = len(b)
+	return w.ResponseWriter.Write(b)
+}
+
+// WriteLog Logs the Http Status for a request into fileHandler and returns a httphandler function which is a wrapper to log the requests.
+func logger(handle http.Handler) http.HandlerFunc {
+	return func(w http.ResponseWriter, request *http.Request) {
+		start := time.Now()
+		writer := statusWriter{w, 0, 0}
+		handle.ServeHTTP(&writer, request)
+		end := time.Now()
+		latency := end.Sub(start)
+		statusCode := writer.status
+		log.Println(request.Method, request.URL.Path, statusCode, latency)
+	}
 }
 
 func getServeConfig(args []string) ServeConfig {
@@ -42,8 +76,8 @@ func getServeConfig(args []string) ServeConfig {
 }
 
 func serve(config ServeConfig) {
-
-	pathStat, err := os.Stat(config.Dir)
+ 	
+ 	pathStat, err := os.Stat(config.Dir)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -56,13 +90,10 @@ func serve(config ServeConfig) {
 		})
 	}
 
-	fmt.Println("Serve Config \n Directory : " + path.Base(config.Dir) + " \n Path      : http://localhost:" + config.Port + config.Path + "\n")
+	fmt.Println("\nServe Config \n Directory : " + path.Base(config.Dir) + " \n Path      : http://localhost:" + config.Port + config.Path + "\n")
 	log.Println("Starting server on port: " + config.Port)
 
-	err = http.ListenAndServe(":"+config.Port, nil)
-	if err != nil {
-		log.Fatal("Error ListenAndServe", err)
-	}
+	log.Fatal(http.ListenAndServe(":"+config.Port, logger(http.DefaultServeMux)))
 }
 
 func main() {
