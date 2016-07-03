@@ -1,13 +1,14 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"path"
-	"strings"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -16,7 +17,6 @@ type ServeConfig struct {
 	Dir  string
 	Path string
 }
-
 
 type statusWriter struct {
 	http.ResponseWriter
@@ -31,13 +31,12 @@ func (w *statusWriter) WriteHeader(status int) {
 
 func (w *statusWriter) Write(b []byte) (int, error) {
 	if w.status == 0 {
-		w.status = 200
+		w.status = http.StatusOK
 	}
 	w.length = len(b)
 	return w.ResponseWriter.Write(b)
 }
 
-// WriteLog Logs the Http Status for a request into fileHandler and returns a httphandler function which is a wrapper to log the requests.
 func logger(handle http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, request *http.Request) {
 		start := time.Now()
@@ -63,11 +62,11 @@ func getServeConfig(args []string) ServeConfig {
 
 			if err == nil {
 				config.Port = element
-			} else if(strings.Contains(element,":")) {
-				s := strings.Split(element,":")
-				config.Dir,config.Port = s[0],s[1] 
+			} else if strings.Contains(element, ":") {
+				s := strings.Split(element, ":")
+				config.Dir, config.Port = s[0], s[1]
 			} else {
-				config.Dir = element	
+				config.Dir = element
 			}
 		}
 	}
@@ -76,8 +75,8 @@ func getServeConfig(args []string) ServeConfig {
 }
 
 func serve(config ServeConfig) {
- 	
- 	pathStat, err := os.Stat(config.Dir)
+
+	pathStat, err := os.Stat(config.Dir)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -97,7 +96,8 @@ func serve(config ServeConfig) {
 }
 
 func main() {
-	args := os.Args[1:]
+	flag.Parse()
+	args := flag.Args()
 	config := getServeConfig(args)
 	serve(config)
 }
