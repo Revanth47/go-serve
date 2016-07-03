@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strings"
 	"strconv"
 )
 
@@ -21,17 +22,18 @@ func getServeConfig(args []string) ServeConfig {
 	config := ServeConfig{"8000", dir, "/"}
 
 	// if no args are passed, use default config
-	if(len(args)>0){
-		for _,element := range args {
-			
-			_,err := strconv.Atoi(element)
-			
-			if(err == nil){
+	if len(args) > 0 {
+		for _, element := range args {
+
+			_, err := strconv.Atoi(element)
+
+			if err == nil {
 				config.Port = element
+			} else if(strings.Contains(element,":")) {
+				s := strings.Split(element,":")
+				config.Dir,config.Port = s[0],s[1] 
 			} else {
-				if(element[0]!='/') {
-					config.Dir = element
-				}
+				config.Dir = element	
 			}
 		}
 	}
@@ -41,16 +43,16 @@ func getServeConfig(args []string) ServeConfig {
 
 func serve(config ServeConfig) {
 
-	pathStat,err := os.Stat(config.Dir)
-	if(err!=nil) {
+	pathStat, err := os.Stat(config.Dir)
+	if err != nil {
 		log.Fatal(err)
 	}
 
-	if(pathStat.IsDir()) {
+	if pathStat.IsDir() {
 		http.Handle(config.Path, http.FileServer(http.Dir(config.Dir)))
 	} else {
-		http.HandleFunc(config.Path, func (w http.ResponseWriter, r *http.Request) {
-		    http.ServeFile(w, r, config.Dir)
+		http.HandleFunc(config.Path, func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, config.Dir)
 		})
 	}
 
