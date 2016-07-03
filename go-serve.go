@@ -20,11 +20,23 @@ func getServeConfig(args []string) ServeConfig {
 	dir, _ := os.Getwd()
 	config := ServeConfig{"8000", dir, "/"}
 
+	// if no args are passed, use default config
 	if(len(args)>0){
 		for _,element := range args {
+			
 			_,err := strconv.Atoi(element)
+			
 			if(err == nil){
 				config.Port = element
+			} else {
+			
+				if(element[0]!='/') {
+					pathStat,err := os.Stat(element)
+					if(err!=nil||!pathStat.IsDir()) {
+						log.Fatal("Invalid Directory Path")
+					}
+					config.Dir = element
+				}
 			}
 		}
 	}
