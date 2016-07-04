@@ -7,15 +7,14 @@ import (
 	"net/http"
 	"os"
 	"path"
-	"strconv"
-	"strings"
 	"time"
 )
 
-type ServeConfig struct {
-	Port string
-	Dir  string
-	Path string
+type config struct {
+	Port    string
+	Dir     string
+	Path    string
+	listDir bool
 }
 
 type statusWriter struct {
@@ -42,62 +41,38 @@ func logger(handle http.Handler) http.HandlerFunc {
 		start := time.Now()
 		writer := statusWriter{w, 0, 0}
 		handle.ServeHTTP(&writer, request)
-		end := time.Now()
-		latency := end.Sub(start)
+		latency := time.Since(start)
 		statusCode := writer.status
 		log.Println(request.Method, request.URL.Path, statusCode, latency)
 	}
 }
 
-func getServeConfig(args []string) ServeConfig {
-
-	dir, _ := os.Getwd()
-	config := ServeConfig{"8000", dir, "/"}
-
-	// if no args are passed, use default config
-	if len(args) > 0 {
-		for _, element := range args {
-
-			_, err := strconv.Atoi(element)
-
-			if err == nil {
-				config.Port = element
-			} else if strings.Contains(element, ":") {
-				s := strings.Split(element, ":")
-				config.Dir, config.Port = s[0], s[1]
-			} else {
-				config.Dir = element
-			}
-		}
-	}
-
-	return config
-}
-
-func serve(config ServeConfig) {
-
-	pathStat, err := os.Stat(config.Dir)
+func (c config) serve() {
+	file, err := os.Stat(c.Dir)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if pathStat.IsDir() {
-		http.Handle(config.Path, http.FileServer(http.Dir(config.Dir)))
+	if file.IsDir() {
+		http.Handle(c.Path, http.FileServer(http.Dir(c.Dir)))
 	} else {
-		http.HandleFunc(config.Path, func(w http.ResponseWriter, r *http.Request) {
-			http.ServeFile(w, r, config.Dir)
+		http.HandleFunc(c.Path, func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, c.Dir)
 		})
 	}
 
-	fmt.Println("\nServe Config \n Directory : " + path.Base(config.Dir) + " \n Path      : http://localhost:" + config.Port + config.Path + "\n")
-	log.Println("Starting server on port: " + config.Port)
+	fmt.Println("\nServe Config \n Directory : " + path.Base(c.Dir) + " \n Path      : http://localhost:" + c.Port + c.Path + "\n")
+	log.Println("Starting server on port: " + c.Port)
 
-	log.Fatal(http.ListenAndServe(":"+config.Port, logger(http.DefaultServeMux)))
+	log.Fatal(http.ListenAndServe(":"+c.Port, logger(http.DefaultServeMux)))
 }
 
 func main() {
+	c := config{}
+	flag.StringVar(&c.Port, "p", "8000", "Port Number")
+	flag.StringVar(&c.Dir, "d", ".", "Serve Directory")
+	flag.StringVar(&c.Path, "path", "/", "Public Access Path")
+	flag.BoolVar(&c.listDir, "disable-dir", false, "Disable Directory Listing")
 	flag.Parse()
-	args := flag.Args()
-	config := getServeConfig(args)
-	serve(config)
+	c.serve()
 }
