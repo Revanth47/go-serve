@@ -62,13 +62,13 @@ func (c *config) clean() {
 	 * public path must be of the form "/something/"              *
 	 * directory path must be clean to ensure proper file serving *
 	 **************************************************************/
-	c.public=path.Join("/",c.public)
-	if(c.public!="/"){
-		c.public=c.public+"/"
+	c.public = path.Join("/", c.public)
+	if c.public != "/" {
+		c.public = c.public + "/"
 	}
 
 	c.dir = path.Clean(c.dir)
-	c.port = ":"+c.port
+	c.port = ":" + c.port
 }
 
 func (c config) serve() {
@@ -93,10 +93,10 @@ func (c config) serve() {
 				if err != nil {
 					http.NotFound(w, r)
 				} else if file.IsDir() {
-					index,err := filepath.Glob("index.htm*")
-					if(err==nil&&len(index)>0){
-						http.ServeFile(w,r,index[0])
-					}  
+					index, err := filepath.Glob("index.htm*")
+					if err == nil && len(index) > 0 {
+						http.ServeFile(w, r, index[0])
+					}
 					http.NotFound(w, r)
 				} else {
 					http.ServeFile(w, r, p)
@@ -106,13 +106,13 @@ func (c config) serve() {
 			/*************************************************************************
 		     * Prefer to use http's default directory                                *
 			 * if no custom modifications are required(eg disable directory listing) *
-			 *************************************************************************/ 
-			http.Handle(c.public, http.StripPrefix(c.public,http.FileServer(http.Dir(c.dir))))
+			 *************************************************************************/
+			http.Handle(c.public, http.StripPrefix(c.public, http.FileServer(http.Dir(c.dir))))
 		}
 	} else {
 		/*************************************************
 		 * To handle single file serve                   *
-		 * if single file is passed as arguement         *  
+		 * if single file is passed as arguement         *
 		 *************************************************/
 		http.HandleFunc(c.public, func(w http.ResponseWriter, r *http.Request) {
 			http.ServeFile(w, r, c.dir)
@@ -138,9 +138,9 @@ func main() {
 	flag.Parse()
 	/*****************************************************
 	 * PublicPath is cleaned to ensure proper arguement  *
-	 * is passed to http.StripPrefix                     *                   
+	 * is passed to http.StripPrefix                     *
 	 *****************************************************/
-	c.clean() 
+	c.clean()
 	fmt.Println(c)
 	c.serve()
 }
