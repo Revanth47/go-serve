@@ -14,6 +14,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -59,6 +60,14 @@ func logger(handle http.Handler) http.HandlerFunc {
 }
 
 func (c *config) clean() {
+	/**************************************************
+	 * Guard clause to validate if serve dir is valid *
+	 **************************************************/
+	_, err := os.Stat(c.dir)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	/**************************************************************
 	 * public path must be of the form "/something/"              *
 	 * directory path must be clean to ensure proper file serving *
@@ -73,17 +82,19 @@ func (c *config) clean() {
 }
 
 func (c config) serve() {
-	/**************************************************
-	 * Guard clause to validate if serve dir is valid *
-	 **************************************************/
-	file, err := os.Stat(c.dir)
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	http.HandleFunc(c.public, func(w http.ResponseWriter, r *http.Request) {
+
+		/********************************************
+		 * mockup of http's StripPrefix, used to    *
+		 * avoid writing a handler around this func *
+		 ********************************************/
+		if(c.public!="/") {
+			r.URL.Path = strings.TrimPrefix(r.URL.Path,c.public)
+		}
+
 		p := path.Clean(c.dir + r.URL.Path)
-		file, err = os.Stat(p)
+		file, err := os.Stat(p)
 		
 		if err != nil {
 			http.NotFound(w, r)
@@ -98,10 +109,10 @@ func (c config) serve() {
 		}
 	})
 
-	fmt.Println("\nServe Config \n Directory : " + path.Base(c.dir) + " \n Path      : http://localhost:" + c.port + c.public + "\n")
-	log.Println("Starting server on port: " + c.port)
+	fmt.Println("\nServe Config \n Directory : " + path.Base(c.dir) + " \n Path      : http://localhost" + c.port + c.public + "\n")
+	log.Println("Starting server")
 
-	log.Fatal(http.ListenAndServe(c.port, logger(http.DefaultServeMux)))
+	log.Fatal(http.ListenAndServe(c.port, logger((http.DefaultServeMux))))
 }
 
 /**************************************
@@ -116,8 +127,8 @@ func main() {
 	flag.BoolVar(&c.disableDir, "disable-dir", false, "Disable Directory Listing (useful for asset serving .etc)")
 	flag.Parse()
 	/*****************************************************
-	 * PublicPath is cleaned to ensure proper arguement  *
-	 * is passed to http.StripPrefix                     *
+	 * Arguements are cleaned and validated to ensure    *
+	 * proper arguements were passed                     *
 	 *****************************************************/
 	c.clean()
 	c.serve()
