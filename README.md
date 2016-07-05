@@ -2,6 +2,7 @@
 Command-Line Static File Server
 
 ![Go Report Card](https://goreportcard.com/badge/github.com/Revanth47/go-serve)
+![Travis](https://api.travis-ci.org/Revanth47/go-serve.svg?branch=master)
 ## Usage
 
 #### How to use it? Just run (Default: serves current working directory on localhost:8000)

@@ -1,9 +1,9 @@
+// Package go-serve is a simple command line static file server using go.
+
 /*************************************************** *
  * @author  Revanth M(@Revanth47)                    *
  * @github  https://github.com/Revanth47/go-serve    *
  * @license MIT                                      *
- * @package go-serve                                 *
- * @about   A simple command line static file server *
  *****************************************************/
 
 package main
