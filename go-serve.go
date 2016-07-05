@@ -1,8 +1,10 @@
-/**************************************************
- * @author  Revanth M(@Revanth47)                 *
- * @github  https://github.com/Revanth47/go-serve *
- * @license MIT                                   * 
- **************************************************/
+/*************************************************** *
+ * @author  Revanth M(@Revanth47)                    *
+ * @github  https://github.com/Revanth47/go-serve    *
+ * @license MIT                                      *
+ * @package go-serve                                 *
+ * @about   A simple command line static file server *
+ *****************************************************/
 
 package main
 
@@ -19,12 +21,12 @@ import (
 )
 
 type options struct {
-	port         string
-	dir          string
-	public       string
-	readTimeOut  time.Duration
-	writeTimeout time.Duration
-	disableDir   bool
+	port         string        // Server Addr Port
+	dir          string        // Directory to be served
+	public       string        // Public Path at which directory is served
+	readTimeOut  time.Duration // Maximum Request read duration
+	writeTimeout time.Duration // Maximum Response write duration
+	disableDir   bool          // Disable Directory Listing
 }
 
 type statusWriter struct {
@@ -82,7 +84,7 @@ func (c *options) clean() {
 	c.dir = path.Clean(c.dir)
 	c.port = ":" + c.port
 
-	if c.readTimeOut<0 || c.writeTimeout<0 {
+	if c.readTimeOut < 0 || c.writeTimeout < 0 {
 		log.Fatal("Timeout cannot be a negative integer")
 	}
 }
@@ -90,18 +92,17 @@ func (c *options) clean() {
 func (c options) serve() {
 
 	http.HandleFunc(c.public, func(w http.ResponseWriter, r *http.Request) {
-
 		/********************************************
 		 * mockup of http's StripPrefix, used to    *
 		 * avoid writing a handler around this func *
 		 ********************************************/
-		if c.public!="/" {
-			r.URL.Path = strings.TrimPrefix(r.URL.Path,c.public)
+		if c.public != "/" {
+			r.URL.Path = strings.TrimPrefix(r.URL.Path, c.public)
 		}
 
 		p := path.Clean(c.dir + r.URL.Path)
 		file, err := os.Stat(p)
-		
+
 		if err != nil {
 			http.NotFound(w, r)
 		} else if file.IsDir() && c.disableDir {
@@ -133,19 +134,19 @@ func (c options) serve() {
  **************************************/
 func main() {
 	c := options{}
-	
+
 	flag.StringVar(&c.port, "p", "8000", "Port Number")
 	flag.StringVar(&c.dir, "d", ".", "Serve Directory")
 	flag.StringVar(&c.public, "public", "/", "Public Access Path")
 	flag.BoolVar(&c.disableDir, "disable-dir", false, "Disable Directory Listing (useful for asset serving .etc)")
-	flag.DurationVar(&c.readTimeOut,"read",0,"Maximum Request Read Duration")
-	flag.DurationVar(&c.writeTimeout,"write",0,"Maximum Request Read Duration")
+	flag.DurationVar(&c.readTimeOut, "read", 0, "Maximum Request Read Duration")
+	flag.DurationVar(&c.writeTimeout, "write", 0, "Maximum Response Write Duration")
 
 	flag.Parse()
 
 	/*****************************************************
-	 * Arguements are cleaned and validated to ensure    *
-	 * proper arguements were passed                     *
+	 * Arguments are cleaned and validated to ensure    *
+	 * proper arguments were passed                     *
 	 *****************************************************/
 	c.clean()
 	c.serve()
