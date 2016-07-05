@@ -1,7 +1,8 @@
-/****************************************
- * @author Revanth M(@Revanth47)        *
- * @github https://github.com/Revanth47 *
- ****************************************/
+/**************************************************
+ * @author  Revanth M(@Revanth47)                 *
+ * @github  https://github.com/Revanth47/go-serve *
+ * @license MIT                                   * 
+ **************************************************/
 
 package main
 
@@ -80,44 +81,22 @@ func (c config) serve() {
 		log.Fatal(err)
 	}
 
-	if file.IsDir() {
-		if c.disableDir {
-			http.HandleFunc(c.public, func(w http.ResponseWriter, r *http.Request) {
-				p := path.Clean(c.dir + r.URL.Path)
-				file, err = os.Stat(p)
-				/***********************************************************************
-				 * Send a 404 if file not found or if path is dir                      *
-				 * An additional check to serve index.html if same is available in dir *
-				 * Implemented if disable-dir flag is set to true                      *
-				 ***********************************************************************/
-				if err != nil {
-					http.NotFound(w, r)
-				} else if file.IsDir() {
-					index, err := filepath.Glob("index.htm*")
-					if err == nil && len(index) > 0 {
-						http.ServeFile(w, r, index[0])
-					}
-					http.NotFound(w, r)
-				} else {
-					http.ServeFile(w, r, p)
-				}
-			})
+	http.HandleFunc(c.public, func(w http.ResponseWriter, r *http.Request) {
+		p := path.Clean(c.dir + r.URL.Path)
+		file, err = os.Stat(p)
+		
+		if err != nil {
+			http.NotFound(w, r)
+		} else if file.IsDir() && c.disableDir {
+			index, err := filepath.Glob("index.htm*")
+			if err == nil && len(index) > 0 {
+				http.ServeFile(w, r, index[0])
+			}
+			http.NotFound(w, r)
 		} else {
-			/*************************************************************************
-		     * Prefer to use http's default directory                                *
-			 * if no custom modifications are required(eg disable directory listing) *
-			 *************************************************************************/
-			http.Handle(c.public, http.StripPrefix(c.public, http.FileServer(http.Dir(c.dir))))
+			http.ServeFile(w, r, p)
 		}
-	} else {
-		/*************************************************
-		 * To handle single file serve                   *
-		 * if single file is passed as arguement         *
-		 *************************************************/
-		http.HandleFunc(c.public, func(w http.ResponseWriter, r *http.Request) {
-			http.ServeFile(w, r, c.dir)
-		})
-	}
+	})
 
 	fmt.Println("\nServe Config \n Directory : " + path.Base(c.dir) + " \n Path      : http://localhost:" + c.port + c.public + "\n")
 	log.Println("Starting server on port: " + c.port)
@@ -141,6 +120,5 @@ func main() {
 	 * is passed to http.StripPrefix                     *
 	 *****************************************************/
 	c.clean()
-	fmt.Println(c)
 	c.serve()
 }

@@ -26,6 +26,13 @@ $ go-serve -d assets
 $ go-serve --disable-dir
 ```
 
+
+#### Want to serve files through a different public path? (say localhost:8000/files/)?
+```bash
+$ go-serve --path /files/
+```
+
+
 ## Installation
 ```bash
 $ go get -u github.com/Revanth47/go-serve
