@@ -18,11 +18,13 @@ import (
 	"time"
 )
 
-type config struct {
-	port       string
-	dir        string
-	public     string
-	disableDir bool
+type options struct {
+	port         string
+	dir          string
+	public       string
+	readTimeOut  time.Duration
+	writeTimeout time.Duration
+	disableDir   bool
 }
 
 type statusWriter struct {
@@ -59,7 +61,7 @@ func logger(handle http.Handler) http.HandlerFunc {
 	}
 }
 
-func (c *config) clean() {
+func (c *options) clean() {
 	/**************************************************
 	 * Guard clause to validate if serve dir is valid *
 	 **************************************************/
@@ -79,9 +81,13 @@ func (c *config) clean() {
 
 	c.dir = path.Clean(c.dir)
 	c.port = ":" + c.port
+
+	if c.readTimeOut<0 || c.writeTimeout<0 {
+		log.Fatal("Timeout cannot be a negative integer")
+	}
 }
 
-func (c config) serve() {
+func (c options) serve() {
 
 	http.HandleFunc(c.public, func(w http.ResponseWriter, r *http.Request) {
 
@@ -89,7 +95,7 @@ func (c config) serve() {
 		 * mockup of http's StripPrefix, used to    *
 		 * avoid writing a handler around this func *
 		 ********************************************/
-		if(c.public!="/") {
+		if c.public!="/" {
 			r.URL.Path = strings.TrimPrefix(r.URL.Path,c.public)
 		}
 
@@ -112,7 +118,13 @@ func (c config) serve() {
 	fmt.Println("\nServe Config \n Directory : " + path.Base(c.dir) + " \n Path      : http://localhost" + c.port + c.public + "\n")
 	log.Println("Starting server")
 
-	log.Fatal(http.ListenAndServe(c.port, logger((http.DefaultServeMux))))
+	s := &http.Server{
+		Addr:         c.port,
+		Handler:      logger(http.DefaultServeMux),
+		ReadTimeout:  c.readTimeOut,
+		WriteTimeout: c.writeTimeout,
+	}
+	log.Fatal(s.ListenAndServe())
 }
 
 /**************************************
@@ -120,12 +132,17 @@ func (c config) serve() {
  * to allow lazy execution of command *
  **************************************/
 func main() {
-	c := config{}
+	c := options{}
+	
 	flag.StringVar(&c.port, "p", "8000", "Port Number")
 	flag.StringVar(&c.dir, "d", ".", "Serve Directory")
 	flag.StringVar(&c.public, "public", "/", "Public Access Path")
 	flag.BoolVar(&c.disableDir, "disable-dir", false, "Disable Directory Listing (useful for asset serving .etc)")
+	flag.DurationVar(&c.readTimeOut,"read",0,"Maximum Request Read Duration")
+	flag.DurationVar(&c.writeTimeout,"write",0,"Maximum Request Read Duration")
+
 	flag.Parse()
+
 	/*****************************************************
 	 * Arguements are cleaned and validated to ensure    *
 	 * proper arguements were passed                     *
